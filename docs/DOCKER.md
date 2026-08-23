@@ -1,7 +1,9 @@
 # Container image
 
-`docker/Dockerfile` extends a verified Kafka Connect 4.0-compatible base image
-and copies the source-built plugin into `/opt/kafka/plugins`.
+For the complete build, environment, verification, and troubleshooting flow,
+see [Docker deployment](docker-deployment.md). `docker/Dockerfile` extends a
+Kafka Connect 4.0-compatible base image and copies the source-built plugin into
+`/opt/kafka/plugins`.
 
 Build locally with a registry-independent image name:
 

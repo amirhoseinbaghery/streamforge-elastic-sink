@@ -1,104 +1,90 @@
 # StreamForge Elasticsearch Sink
 
-`streamforge-elastic-sink` is a Kafka Connect sink connector that writes Kafka
-records to Elasticsearch 9.x using the official Elasticsearch Java API Client.
-The repository preserves the existing production-tested implementation; this
-release preparation does not change connector behavior, dependencies, or build
-coordinates.
+StreamForge Elasticsearch Sink is an independent Kafka Connect sink connector
+that writes Kafka records to Elasticsearch 9.x. It is intended for teams that
+already run Kafka Connect and need deterministic document identity, explicit
+topic-to-index routing, bounded bulk writes, and predictable retry and offset
+behavior.
 
-## Why this connector exists
+The implementation was originally developed by Amirhosein Bagheri and has been
+used in the DataPie platform. DataPie is an example deployment only; it is not
+required to build, configure, or operate this connector.
 
-Kafka Connect provides the consumer, task lifecycle, partition assignment, and
-offset storage. This connector supplies a small, source-backed Elasticsearch
-sink with deterministic IDs, allow-listed index mappings, bounded bulk requests,
-bounded retries, and contiguous per-partition offset commits.
+## At a glance
 
-## Features
-
-- Kafka Connect `SinkConnector` and `SinkTask` implementation.
-- Elasticsearch 9 major-version validation at task startup.
-- HTTPS/TLS hostname verification and optional PEM CA trust.
-- External credential file paths or Kafka Connect ConfigProvider references.
-- Deterministic IDs from the Kafka record key or a configured record field.
+- Java 17, Kafka Connect 4.0.x, and Elasticsearch 9.x.
+- Deterministic IDs from record keys or configured value fields.
 - Explicit `INDEX`, `CREATE`, `UPSERT`, and `DELETE` operations.
-- Tombstone policies: `ignore`, `delete`, or `dlq`.
-- Synchronous, bounded bulk writes with item-level acknowledgement.
-- Retry classification for transient HTTP and I/O failures.
-- Partition-local contiguous offset tracking.
+- Allow-listed topic-to-index mappings; index names are configuration, not data.
+- Synchronous, bounded bulk requests with bounded retries for transient errors.
+- TLS with hostname verification and optional PEM CA certificates.
+- Tombstone policies and optional Kafka Connect errant-record/DLQ reporting.
+- Per-partition contiguous offset tracking.
 
-## Architecture
+## Quick start
 
-```text
-Kafka Connect worker
-  -> StreamForge sink task
-  -> index / id / operation resolution
-  -> JSON encoding
-  -> bounded synchronous Elasticsearch bulk request
-  -> item acknowledgement or configured DLQ terminal state
-  -> contiguous Kafka offset commit
-```
-
-See [docs/architecture.md](docs/architecture.md) for lifecycle details.
-
-## Supported environments
-
-The preserved build targets Java 17, Kafka Connect 4.0.x, and Elasticsearch 9.x.
-The Dockerfile expects a compatible Kafka Connect 4.0 base image. Kubernetes
-examples target Strimzi-managed Kafka Connect. Other versions require separate
-validation.
-
-## Installation and quick start
-
-1. Install Java 17 and obtain a Kafka Connect 4.0.x distribution.
-2. Run `./gradlew clean test pluginManifest`.
-3. Install `build/plugin/datapie-elasticsearch-sink` as one plugin directory.
-4. Configure Kafka Connect converters, the Elasticsearch URL, credentials, and
-   at least one `index.mapping.<topic>` property.
-5. Register the connector and verify task state, Elasticsearch health, and
-   Kafka Connect error metrics.
-
-See [docs/installation.md](docs/installation.md) and
-[docs/configuration-reference.md](docs/configuration-reference.md).
-
-## Development and testing
+Build the complete plugin directory, copy it to the worker's `plugin.path`,
+restart the worker, and register a connector with at least one
+`index.mapping.<topic>` property:
 
 ```sh
 ./gradlew clean test pluginManifest
+cp -R build/plugin/datapie-elasticsearch-sink /opt/kafka/plugins/
 ```
 
-The current unit tests cover index allow-listing and contiguous offset
-semantics. They do not replace an integration test against an Elasticsearch
-cluster. See [docs/development-guide.md](docs/development-guide.md).
+Minimal connector properties:
 
-## Deployment options
+```properties
+name=events-to-elasticsearch
+connector.class=ir.datapie.connect.elasticsearch.DataPieElasticsearchSinkConnector
+tasks.max=1
+topics=events
+key.converter=org.apache.kafka.connect.storage.StringConverter
+value.converter=org.apache.kafka.connect.json.JsonConverter
+value.converter.schemas.enable=false
+elasticsearch.url=https://elasticsearch.example:9200
+elasticsearch.username.file=/run/secrets/es-user
+elasticsearch.password.file=/run/secrets/es-password
+index.mapping.events=events-v1
+document.id.strategy=record-key
+operation.events=UPSERT
+```
 
-- [Standalone Kafka Connect](docs/standalone-deployment.md)
-- [Docker](docs/docker-deployment.md)
-- [Kubernetes / Strimzi](docs/kubernetes-deployment.md)
+Send a keyed JSON record to `events`, then verify it in `events-v1` using the
+same key as the document ID. The [getting started guide](docs/getting-started.md)
+walks through a complete local setup.
 
-The repository does not publish a prebuilt image. Build and publish an image
-only through an operator-controlled registry and release process.
+## Deployment choices
 
-## Benchmark reference
+- [Getting started](docs/getting-started.md): build, install, register, verify.
+- [Standalone Kafka Connect](docs/standalone-deployment.md): worker properties.
+- [Docker](docs/docker-deployment.md): build a Kafka Connect image.
+- [Kubernetes and Strimzi](docs/kubernetes-deployment.md): image, secrets, and
+  `KafkaConnector` workflow.
 
-Benchmark methodology and the incomplete direct/Docker/Kubernetes comparison
-are documented in [docs/performance-benchmark.md](docs/performance-benchmark.md).
-Only results present in this repository are reported; missing measurements are
-not estimated.
+## Requirements and boundaries
 
-## Production experience
+The tested build targets Java 17, Kafka Connect 4.0.x, and Elasticsearch 9.x.
+The project does not manage Kafka, Elasticsearch mappings, index templates, ILM,
+or cluster lifecycle. The current connector creates one task configuration;
+`tasks.max` greater than one is not a demonstrated parallelism guarantee.
+Validate other version combinations and workload sizes in your environment.
 
-This connector has been used and benchmarked in a real production-oriented data
-platform called DataPie. That experience is operational context, not a claim
-that this repository contains the platform or that every deployment is
-production-ready. Review the [production guide](docs/production-guide.md) and
-the known limitations in [RELEASE_NOTES.md](RELEASE_NOTES.md) before adoption.
+## Learn more
 
-## Release
+- [Configuration reference](docs/configuration-reference.md)
+- [Architecture](docs/architecture.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Production guide](docs/production-guide.md)
+- [Security](docs/SECURITY.md)
+- [Benchmark evidence and gaps](docs/performance-benchmark.md)
+- [Development guide](docs/development-guide.md)
 
-Version `v1.0.0` is the first public release of the production-tested connector
-implementation. The preserved Java package and artifact coordinates remain
-unchanged for reproducibility.
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull
+request. Please include the test command and compatibility impact for changes.
+The project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

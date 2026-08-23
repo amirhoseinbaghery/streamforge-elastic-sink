@@ -1,18 +1,15 @@
 # Kubernetes
 
-The canonical runtime authority is the repository-backed Strimzi
-`KafkaConnect` resource in `charts/kafka/kafka-connector/kafka-connect.yml`.
-The validation connector uses a separate name and consumer group and writes only
-to source-controlled temporary indices. Existing connectors are not removed and
-no production cutover is part of PDP-E1–E4.
+The public deployment workflow is documented in
+[Kubernetes deployment](kubernetes-deployment.md).
+
+Build an immutable image containing the complete plugin directory and reference
+it from the Strimzi `KafkaConnect` resource. Use a separate connector name,
+consumer group, and temporary index for validation; do not assume an internal
+cluster overlay is present in this repository.
 
 For external deployments, build and publish the image to a registry controlled
 by the operator, then use the resulting immutable image reference. For a private
-development cluster, load the locally built image into every eligible node's
-container runtime. For this cluster the source uses the qualified local name
-`localhost/datapie-elasticsearch-sink:0.1.0`; the `localhost/` prefix prevents
-Kubernetes from normalizing the reference to Docker Hub. Strimzi's
-`KafkaConnect` CRD does not expose a container
-`imagePullPolicy` field; this non-`latest` local tag therefore uses Kubernetes'
-default `IfNotPresent` behavior. Verify the generated Pod before rollout. Do
-not rely on an ad-hoc live patch.
+development cluster, load the image into every eligible node's container
+runtime or use a registry reachable by the cluster. Verify the rendered Pod and
+image digest before rollout; do not rely on an ad-hoc live patch.

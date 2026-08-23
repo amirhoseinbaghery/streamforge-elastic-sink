@@ -1,6 +1,6 @@
 # Configuration reference
 
-The values below are defined by `DataPieElasticsearchSinkConfig` or by its
+The values below are defined by the connector configuration implementation or by its
 documented topic-prefix conventions. Defaults are implementation defaults and
 are not recommendations for every workload. Secret values must remain external.
 

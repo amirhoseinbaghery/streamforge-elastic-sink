@@ -1,5 +1,8 @@
 # Configuration
 
+This is a short overview. See the [configuration reference](configuration-reference.md)
+for defaults, examples, bounds, operational impact, and common mistakes.
+
 Required: `elasticsearch.url` and at least one `index.mapping.<topic>` entry.
 Credentials are supplied by Kafka Connect ConfigProvider references or by the
 optional `elasticsearch.username.file` and `elasticsearch.password.file` paths.

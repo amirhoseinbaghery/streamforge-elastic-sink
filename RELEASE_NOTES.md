@@ -2,9 +2,14 @@
 
 ## Release description
 
-Version `v1.0.0` is the first public release of the production-tested connector
-implementation. It is a documentation and release-preparation milestone over
-the existing implementation, not a behavior or performance redesign.
+Version v1.0.0 is the first public release of StreamForge Elasticsearch Sink.
+
+This release publishes the existing connector implementation together with
+documentation, deployment examples, configuration references, and operational
+guides.
+
+The release does not introduce behavioral changes, dependency upgrades, or
+architecture changes compared with the validated implementation.
 
 ## Included capabilities
 

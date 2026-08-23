@@ -1,5 +1,28 @@
 # Troubleshooting
 
+Start with the Connect REST status, worker log, Elasticsearch health, and
+Kafka lag. Collect connector name, task number, topic/partition, and sanitized
+errors only; never include credentials or secret-bearing configuration.
+
+## Connector does not start
+
+**Possible causes:** invalid configuration, no `index.mapping.<topic>`, an
+unreachable URL, or an Elasticsearch major-version mismatch.
+
+**Solution:** call `/connector-plugins`, configuration validation, and the
+connector `/status` endpoint. Confirm the URL is reachable from the worker and
+compare `elasticsearch.expected.major` with the server. Find the first nested
+cause in the worker log.
+
+## Plugin is not discovered
+
+**Possible cause:** only the jar was copied, the directory is not on
+`plugin.path`, or the worker was not restarted.
+
+**Solution:** install the entire `build/plugin/datapie-elasticsearch-sink`
+directory, ensure it is readable, restart or roll the worker, and confirm the
+connector class appears in `/connector-plugins`.
+
 ## Elasticsearch unavailable or TLS failures
 
 Check DNS/routing from the Connect worker, the URL scheme, CA path, hostname,
@@ -18,6 +41,24 @@ to increase limits blindly.
 Confirm the referenced username/password files exist in the worker, are
 readable by the Connect process, and identify a principal with the required
 index privileges. Never place the secret value in logs or a support bundle.
+
+## DLQ problems
+
+**Possible causes:** DLQ mode is enabled without an errant-record reporter, or
+the reporter cannot publish to its topic.
+
+**Solution:** configure and permission the worker's DLQ reporter, validate the
+connector configuration, and inspect reporter producer errors. Use `fail` while
+diagnosing if DLQ behavior is not required.
+
+## Offset or duplicate concerns
+
+**Possible cause:** a bulk request failed, a task restarted, or records were
+acknowledged out of order.
+
+**Solution:** do not manually advance offsets. The connector commits only
+through contiguous acknowledged offsets, so replay after a failure is possible.
+Use deterministic IDs and `UPSERT` when replay should update the same document.
 
 ## Mapping, ID, or operation errors
 

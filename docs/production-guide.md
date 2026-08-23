@@ -31,3 +31,17 @@ verify task health and Elasticsearch identity, and resume only after lag and
 duplicate checks pass. A failed bulk request must not be treated as an offset
 acknowledgement. The connector's retry limits are bounded; persistent failures
 should remain visible as task errors rather than trigger unbounded local work.
+
+
+## Ownership and deployment responsibility
+
+StreamForge Elasticsearch Sink is distributed as an independent connector.
+
+Operational characteristics depend on:
+
+- Kafka configuration
+- Elasticsearch cluster design
+- infrastructure resources
+- workload pattern
+
+The connector does not manage the Kafka or Elasticsearch clusters themselves.
