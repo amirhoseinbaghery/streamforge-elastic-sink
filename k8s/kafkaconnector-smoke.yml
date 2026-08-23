@@ -1,0 +1,37 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: datapie-pdp-e1-e4-smoke
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: kafka-connect
+    datapie.io/pdp-e1-e4: smoke
+spec:
+  class: ir.datapie.connect.elasticsearch.DataPieElasticsearchSinkConnector
+  tasksMax: 1
+  config:
+    topics: datapie-pdp-e1-e4-smoke
+    group.id: connect-pdp-e1-e4-smoke
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: org.apache.kafka.connect.json.JsonConverter
+    value.converter.schemas.enable: "false"
+    elasticsearch.url: https://social-es-es-http.elastic-system.svc:9200
+    elasticsearch.ca.cert.path: /opt/kafka/external-configuration/es-http-ca/ca.crt
+    elasticsearch.expected.major: "9"
+    elasticsearch.username: "${file:/opt/kafka/external-configuration/es-connector-auth/es.properties:username}"
+    elasticsearch.password: "${file:/opt/kafka/external-configuration/es-connector-auth/es.properties:password}"
+    index.mapping.datapie-pdp-e1-e4-smoke: datapie-pdp-e1-e4-smoke-v1
+    document.id.strategy: record-key
+    ordering.mode: partition
+    operation.datapie-pdp-e1-e4-smoke: UPSERT
+    errors.mode: fail
+    tombstone.mode: ignore
+    bulk.max.operations: "50"
+    bulk.max.bytes: "1048576"
+    pending.max.records: "100"
+    pending.max.bytes: "4194304"
+    record.max.bytes: "262144"
+    retry.max.attempts: "3"
+    retry.initial.backoff.ms: "250"
+    retry.max.backoff.ms: "2000"
+    retry.total.timeout.ms: "15000"

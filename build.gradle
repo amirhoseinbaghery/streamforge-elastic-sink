@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group = 'ir.datapie.connect'
+version = providers.gradleProperty('connectorVersion').orElse('0.1.0').get()
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+    withSourcesJar()
+}
+
+repositories { mavenCentral() }
+
+ext {
+    kafkaConnectVersion = '4.0.0'
+    elasticsearchClientVersion = '9.1.10'
+    elasticsearchRestVersion = '9.1.10'
+    jacksonVersion = '2.18.3'
+}
+
+dependencies {
+    compileOnly "org.apache.kafka:connect-api:${kafkaConnectVersion}"
+    compileOnly "org.apache.kafka:connect-transforms:${kafkaConnectVersion}"
+
+    implementation "co.elastic.clients:elasticsearch-java:${elasticsearchClientVersion}"
+    implementation "org.elasticsearch.client:elasticsearch-rest-client:${elasticsearchRestVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
+
+    testImplementation "org.apache.kafka:connect-api:${kafkaConnectVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.11.4"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint:all']
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+jar {
+    manifest {
+        attributes(
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Implementation-Vendor': 'DataPie',
+            'Build-Java-Version': '17'
+        )
+    }
+}
+
+def pluginDir = layout.buildDirectory.dir('plugin/datapie-elasticsearch-sink')
+tasks.register('pluginPackage', Sync) {
+    dependsOn jar
+    into(pluginDir)
+    from(jar)
+    from(configurations.runtimeClasspath)
+    doLast {
+        file(pluginDir.get().asFile.toPath().resolve('VERSION').toFile()).text = "${project.version}\n"
+        file(pluginDir.get().asFile.toPath().resolve('DEPENDENCIES.txt').toFile()).text = configurations.runtimeClasspath.files.collect { it.name }.sort().join('\n') + '\n'
+    }
+}
+
+tasks.register('pluginManifest') {
+    dependsOn 'pluginPackage'
+    doLast {
+        def out = layout.buildDirectory.file('plugin-manifest.txt').get().asFile
+        out.text = pluginDir.get().asFile.listFiles().findAll { it.isFile() }.sort { a, b -> a.name <=> b.name }.collect { "${it.name} ${it.length()}" }.join('\n') + '\n'
+    }
+}

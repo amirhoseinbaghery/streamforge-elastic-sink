@@ -1,0 +1,14 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: datapie-pdp-e1-e4-smoke
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: kafka-cluster
+    datapie.io/pdp-e1-e4: smoke
+spec:
+  partitions: 1
+  replicas: 1
+  config:
+    cleanup.policy: delete
+    retention.ms: 3600000
