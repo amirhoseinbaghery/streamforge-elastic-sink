@@ -11,13 +11,17 @@ CA certificates.
 ```sh
 ./gradlew clean test pluginManifest
 cp -R build/plugin/datapie-elasticsearch-sink /opt/kafka/plugins/
-bin/connect-standalone.sh config/connect-standalone.properties connector.properties
+bin/connect-standalone.sh config/connect-standalone.properties \
+  /path/to/streamforge-elastic-sink/examples/standalone/connector.json
 ```
 
 Set `plugin.path` in the worker properties to include `/opt/kafka/plugins`.
-Keep Kafka bootstrap, converter, offset, config, and status settings in the
-normal Kafka Connect configuration. Keep connector properties in a separate
-file and use a ConfigProvider or file references for secrets.
+Configure Kafka bootstrap servers, converters, and
+`offset.storage.file.filename` in the worker properties. Kafka Connect 4.0
+accepts the JSON request-body format directly as a standalone connector file;
+replace `/path/to/streamforge-elastic-sink` with this repository's absolute
+path. For a secured Elasticsearch cluster, copy the example and add mounted
+credential files or ConfigProvider references.
 
 ## Validation and operations
 

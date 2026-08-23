@@ -1,0 +1,53 @@
+name: streamforge-elastic-sink
+
+services:
+  kafka:
+    image: apache/kafka:4.0.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.4
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+
+  connect:
+    image: streamforge-elastic-sink:local
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+      args:
+        BASE_IMAGE: confluentinc/cp-kafka-connect:8.0.6
+    depends_on:
+      - kafka
+      - elasticsearch
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_GROUP_ID: streamforge-connect
+      CONNECT_CONFIG_STORAGE_TOPIC: streamforge-connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: streamforge-connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: streamforge-connect-status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_PLUGIN_PATH: /usr/share/java,/opt/kafka/plugins
+    ports:
+      - "8083:8083"

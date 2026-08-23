@@ -33,10 +33,9 @@ directory and that its plugin listing contains
 
 ## Register a first connector
 
-The following example assumes the worker has access to the two mounted files.
-Each file contains one value and is trimmed when read. For a worker using the
-FileConfigProvider instead, replace those two properties with provider
-references and configure the provider in the worker.
+The copy-ready development example assumes an unauthenticated Elasticsearch
+node at `http://localhost:9200`. Use mounted files or ConfigProvider references
+for secured deployments; see the [configuration examples](configuration-examples.md).
 
 ```json
 {
@@ -48,9 +47,7 @@ references and configure the provider in the worker.
     "key.converter": "org.apache.kafka.connect.storage.StringConverter",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
     "value.converter.schemas.enable": "false",
-    "elasticsearch.url": "https://elasticsearch.example:9200",
-    "elasticsearch.username.file": "/run/secrets/es-user",
-    "elasticsearch.password.file": "/run/secrets/es-password",
+    "elasticsearch.url": "http://localhost:9200",
     "index.mapping.events": "events-v1",
     "document.id.strategy": "record-key",
     "operation.events": "UPSERT"
@@ -58,13 +55,15 @@ references and configure the provider in the worker.
 }
 ```
 
-Submit it to the Connect REST API:
+The same body is available at
+`examples/standalone/connector.json`. Submit it to the Connect REST API from
+the repository root:
 
 ```sh
-curl -X PUT http://localhost:8083/connectors/events-to-elasticsearch/config \
+curl -fsS -X POST http://localhost:8083/connectors \
   -H 'Content-Type: application/json' \
-  --data @connector.json
-curl http://localhost:8083/connectors/events-to-elasticsearch/status
+  --data @examples/standalone/connector.json
+curl -fsS http://localhost:8083/connectors/events-to-elasticsearch/status
 ```
 
 The task should reach `RUNNING`. A startup failure usually means the plugin is
@@ -85,8 +84,7 @@ printf 'order-1\t{"status":"paid","total":42}\n' | \
 Query Elasticsearch from a network location that can reach the cluster:
 
 ```sh
-curl -u "$ES_USER:$ES_PASSWORD" \
-  'https://elasticsearch.example:9200/events-v1/_doc/order-1'
+curl -fsS 'http://localhost:9200/events-v1/_doc/order-1'
 ```
 
 Check the connector status, worker logs, Kafka consumer lag, and Elasticsearch
@@ -95,7 +93,8 @@ connector, topic, and index after retaining any evidence needed for debugging.
 
 ## Next steps
 
-Read the [configuration reference](configuration-reference.md), then choose a
+Read the [configuration reference](configuration-reference.md) and
+[configuration examples](configuration-examples.md), then choose a
 [Docker](docker-deployment.md), [Kubernetes/Strimzi](kubernetes-deployment.md),
 or [standalone](standalone-deployment.md) deployment path. If the task does not
 start, use [troubleshooting](troubleshooting.md).

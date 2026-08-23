@@ -1,0 +1,19 @@
+{
+  "name": "events-to-elasticsearch",
+  "config": {
+    "connector.class": "ir.datapie.connect.elasticsearch.DataPieElasticsearchSinkConnector",
+    "tasks.max": "1",
+    "topics": "events",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "elasticsearch.url": "http://localhost:9200",
+    "elasticsearch.expected.major": "9",
+    "index.mapping.events": "events-v1",
+    "document.id.strategy": "record-key",
+    "ordering.mode": "partition",
+    "operation.events": "UPSERT",
+    "errors.mode": "fail",
+    "tombstone.mode": "ignore"
+  }
+}

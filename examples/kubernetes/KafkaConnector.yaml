@@ -1,0 +1,26 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: events-to-elasticsearch
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: streamforge-connect
+spec:
+  class: ir.datapie.connect.elasticsearch.DataPieElasticsearchSinkConnector
+  tasksMax: 1
+  config:
+    topics: events
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: org.apache.kafka.connect.json.JsonConverter
+    value.converter.schemas.enable: "false"
+    elasticsearch.url: https://elasticsearch.default.svc:9200
+    elasticsearch.expected.major: "9"
+    elasticsearch.ca.cert.path: /opt/kafka/external-configuration/es-ca/ca.crt
+    elasticsearch.username.file: /opt/kafka/external-configuration/es-credentials/username
+    elasticsearch.password.file: /opt/kafka/external-configuration/es-credentials/password
+    index.mapping.events: events-v1
+    document.id.strategy: record-key
+    ordering.mode: partition
+    operation.events: UPSERT
+    errors.mode: fail
+    tombstone.mode: ignore

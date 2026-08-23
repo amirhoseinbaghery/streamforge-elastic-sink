@@ -1,16 +1,17 @@
 # Configuration reference
 
-The values below are defined by the connector configuration implementation or by its
-documented topic-prefix conventions. Defaults are implementation defaults and
-are not recommendations for every workload. Secret values must remain external.
+The values below are defined by the connector configuration implementation or
+its documented topic-prefix conventions. Defaults are implementation defaults,
+not recommendations for every workload. Secret values must remain external.
+See [configuration examples](configuration-examples.md) for complete profiles.
 
 | Property | Type / default | Required | Example | Explanation; performance and operational notes |
 |---|---|---|---|---|
 | `elasticsearch.url` | string; none | yes | `https://es.example:9200` | Endpoint. Network and TLS latency affect every write. |
-| `elasticsearch.username` | string; empty | no | `${file:...:username}` | Inline/provider username fallback. Prefer external providers. |
-| `elasticsearch.password` | password; empty | no | `${file:...:password}` | Inline/provider password fallback. Never commit a value. |
-| `elasticsearch.username.file` | string; empty | no | `/run/secrets/es-user` | File containing username. File I/O occurs at task startup. |
-| `elasticsearch.password.file` | string; empty | no | `/run/secrets/es-pass` | File containing password. Protect ownership and permissions. |
+| `elasticsearch.username` | string; empty | no | `${file:...:username}` | Inline/provider username fallback. Prefer external providers; a username file takes precedence. |
+| `elasticsearch.password` | password; empty | no | `${file:...:password}` | Inline/provider password fallback. Never commit a value; a password file takes precedence. |
+| `elasticsearch.username.file` | string; empty | no | `/run/secrets/es-user` | File containing one username. It is read and trimmed at task startup; the path must exist inside the worker. |
+| `elasticsearch.password.file` | string; empty | no | `/run/secrets/es-pass` | File containing one password. Protect ownership and permissions; the path is inside the worker, not the host. |
 | `elasticsearch.ca.cert.path` | string; empty | no | `/etc/tls/es-ca.crt` | Optional PEM CA. Enables a private trust root without disabling hostname verification. |
 | `elasticsearch.expected.major` | int; `9` | no | `9` | Startup compatibility guard. A mismatch prevents task start. |
 | `ordering.mode` | string; `partition` | no | `partition` | Only `partition` is accepted; ordering is partition-local, not global. |
@@ -52,3 +53,31 @@ errors.mode=fail
 
 The example intentionally contains no credentials. Validate the complete
 configuration through Kafka Connect before sending records.
+
+## Kafka Connect worker properties
+
+`name`, `connector.class`, `tasks.max`, `topics`, converters, and Kafka Connect
+DLQ settings are standard Kafka Connect properties rather than connector-defined
+properties. The connector currently returns one task configuration, so
+`tasks.max` above `1` does not increase parallelism.
+
+## Frequent configuration mistakes
+
+- A topic suffix must match exactly: records from `orders` require
+  `index.mapping.orders`, not a general `index.mapping` property.
+- Index values must begin with a lowercase letter or digit and contain only
+  lowercase letters, digits, `.`, `_`, or `-`, up to 255 characters.
+- `record-key` requires a non-null, non-empty key. `record-field` requires a
+  matching `document.id.field.<topic>` and a non-null field in every record.
+- `pending.max.records` must be at least `bulk.max.operations`.
+- `retry.max.backoff.ms` must not be lower than
+  `retry.initial.backoff.ms`.
+- File paths and CA paths are resolved inside the Kafka Connect process or
+  container.
+
+## Compatibility identifiers
+
+The package namespace and plugin directory name are preserved from the original
+validated implementation to maintain compatibility with existing deployments.
+Use the documented connector class exactly; the StreamForge project name does
+not change its Java namespace.
